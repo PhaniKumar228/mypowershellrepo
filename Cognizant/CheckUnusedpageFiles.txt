@@ -1,0 +1,73 @@
+$PageFile = Get-WmiObject -computername bossqldev75 -class Win32_PageFileSetting
+
+
+
+function Get-PF {
+$result = "" | Select-Object 'Page File Location', InitialSize, MaximumSize
+foreach($page in $PageFile){
+$result.'Page File Location' = $Page.Name
+$result.InitialSize = [string]$Page.InitialSize + " MB"
+$result.MaximumSize = [string]$Page.MaximumSize + " MB"
+$result
+}} 
+
+
+
+
+#Create your SQL connection string, and then a connection to Wrestlers
+$ServerAConnectionString = "Data Source=BOSSQLPRD64A;Initial Catalog=eMDW;Integrated Security=SSPI;"
+$ServerAConnection = new-object system.data.SqlClient.SqlConnection($ServerAConnectionString);
+ 
+#Create a Dataset to hold the DataTable from DBServers
+$dataSet = new-object "System.Data.DataSet" "DBServers"
+$query = "SET NOCOUNT ON;"
+        $query = $query + "select ComputerNetBIOS,b.Type from [dbo].[DB_ServerData] a left outer join [ServerWMIInfo] b on a.SQLServerName = b.Servername order by 2 "
+        # $query = $query + "@ServerName = 'BOSSQLDEV08A' "
+        #$query = $query + "and d.databasename = 'SHSDev' "
+       
+#write-host $query;
+#Create a DataAdapter which youll use to populate the DataSet with the results
+$dataAdapter = new-object "System.Data.SqlClient.SqlDataAdapter" ($query, $ServerAConnection)
+$dataAdapter.Fill($dataSet) | Out-Null
+ 
+   
+ foreach($a in $dataSet.Tables[0].Rows)
+{
+
+    try
+    {  
+
+            $Path = "\\"
+            $Path = $Path + $a[0]
+            $Path = $Path  + "\c$\pagefile.sys"
+
+            #write-host $Path 
+            #"\\$a[1]\c$\pagefile.sys"
+            #$a.ComputerNetBIOS 
+           # Test-Path \\$a.ComputerNetBIOS\c$\pagefile.sys
+            if(Test-Path -LiteralPath $Path ){    
+                
+                write-host " "
+                $file = Get-Item $Path -Force
+                $CPageFileSize = $file.length/1GB
+                write-host $a.ComputerNetBIOS "(" $a.type  " host) has a pagefile on C:\ that is " $CPageFileSize  "GB"
+                
+                write-host  "Configured page files for "$a.ComputerNetBIOS ":"
+             
+                $PageFile = Get-WmiObject -computername $a.ComputerNetBIOS -class Win32_PageFileSetting
+                Get-PF
+            }
+                
+
+    }
+    catch
+    {
+        $ex = $_.Exception
+    
+        Write-Host "Write-DataTable$($connectionName):$ex.Message"
+    }
+    finally
+    {
+    }
+    
+}

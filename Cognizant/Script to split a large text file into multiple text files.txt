@@ -1,0 +1,60 @@
+# ##############################################################################################################
+# Script to split a large text file into multiple text files
+# ##############################################################################################################
+PARAM (
+    [Parameter(Mandatory=$true)]
+    [String]$filename, #L:\UserDBData4\Data\BCP\rule_log_old.txt
+
+    [Parameter(Mandatory=$true)]
+    [String]$rootName, #L:\UserDBData4\Data\BCP\rule_log_new
+
+    [Parameter(Mandatory=$true)]
+    [Long]$linesperFile
+)
+
+$sw = new-object System.Diagnostics.Stopwatch
+$sw.Start()
+$ext = ".txt"
+
+$filecount = 1
+$reader = $null
+try{
+    $header = Get-Content $filename -TotalCount 1
+    $reader = [io.file]::OpenText($filename)
+    try{
+        "Creating file number $filecount"
+        $writer = [io.file]::CreateText("{0}_{1}{2}" -f ($rootName,$filecount.ToString("00"),$ext))
+        $filecount++
+        $linecount = 0
+
+        if ($filecount -gt 1)
+        {
+            Set-Content $writer $header
+        }
+
+        while($reader.EndOfStream -ne $true) {
+            "Reading $linesperFile"
+            while( ($linecount -lt $linesperFile) -and ($reader.EndOfStream -ne $true)){
+                $writer.WriteLine($reader.ReadLine());
+                $linecount++
+            }
+
+            if($reader.EndOfStream -ne $true) {
+                "Closing file"
+                $writer.Dispose();
+
+                "Creating file number $filecount"
+                $writer = [io.file]::CreateText("{0}_{1}{2}" -f ($rootName,$filecount.ToString("00"),$ext))
+                $filecount++
+                $linecount = 0
+            }
+        }
+    } finally {
+        $writer.Dispose();
+    }
+} finally {
+    $reader.Dispose();
+}
+$sw.Stop()
+
+Write-Host "Split complete in " $sw.Elapsed.TotalSeconds "seconds"

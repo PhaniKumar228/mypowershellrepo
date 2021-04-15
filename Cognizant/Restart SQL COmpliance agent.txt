@@ -1,0 +1,45 @@
+PARAM (
+    [String[]]$servers
+)
+
+foreach ($server in $servers) {
+    Write-Output "Start processing : $server"
+    
+    if (Test-Connection -ComputerName $server -Quiet)
+    {
+        # Find the service
+        $Service = Get-Service -ComputerName $server | Where {$_.Name -like "*SQLcomplianceAgent*" + $server}
+        if ($Service -eq $null)
+        {
+            Write-Host "Error: Could not find the SQLcomplianceAgent service on $server" -ForegroundColor Red
+            Continue
+        }
+        Write-Host "`tService name: $($Service.Name)."
+        Write-Host "`tService status: $($Service.Status)."
+
+        if ($Service.Status -ne "Stopped")
+        {
+            # Find the process
+            Write-Host "`tAttempting to stop the service/process ..."
+            $ServicePID = (Get-Wmiobject win32_Service -ComputerName $server | Where { $_.Name -eq $Service.Name }).ProcessID
+            $ServiceProc = (Get-WmiObject win32_Process -ComputerName $server | Where {$_.ProcessID -eq $ServicePID})
+            $ServiceProc.Terminate()
+            Start-Sleep -s 2
+            $Service.Refresh()
+            Write-Host "`tService name: $($Service.Name)."
+            Write-Host "`tService status: $($Service.Status)."
+        }
+
+        #Restarting the service
+        Write-Host "`tAttempting to start the service/process ..."
+        $Service.Start()
+        Start-Sleep -s 2
+        $Service.Refresh()
+        Write-Host "`tService name: $($Service.Name)."
+        Write-Host "`tService status: $($Service.Status)."
+    }
+    else
+    {
+        Write-Host "Error: Could not connect to $server." -ForegroundColor Red
+    }
+}

@@ -1,0 +1,46 @@
+
+
+
+# -- Set up the environment, load the SCOM module and connect to the SCOM MS -- #
+
+PARAM
+(
+	[Parameter(Mandatory=$true)][string]$ServerName,
+	[Parameter(Mandatory=$true)][Int32]$DurationInMin,
+	[Parameter(Mandatory=$true)][string]$Reason,
+	[Parameter(Mandatory=$false)][string]$Comment
+)
+
+CLEAR
+
+
+$p = [Environment]::GetEnvironmentVariable("PSModulePath")
+$p += ";C:\Program Files\Microsoft System Center 2012 R2\Operations Manager\Powershell\"
+[Environment]::SetEnvironmentVariable("PSModulePath",$p)
+Import-Module OperationsManager
+
+$ScomServer = "BOSINFPRDMSC201"
+
+New-SCOMManagementGroupConnection -Computername $SCOMServer
+
+$ValidReasons = "PlannedOther","UnplannedOther","PlannedHardwareMaintenance","UnplannedHardwareMaintenance","PlannedHardwareInstallation","UnplannedHardwareInstallation","PlannedOperatingSystemReconfiguration","UnplannedOperatingSystemReconfiguration","PlannedApplicationMaintenance","ApplicationInstallation","ApplicationUnresponsive","ApplicationUnstable","SecurityIssue","LossOfNetworkConnectivity"
+
+IF (($ValidReasons -contains $Reason) -eq $false)
+{
+	Write-Error "The Reason is invalid. It needs to be one of the following : PlannedOther, UnplannedOther, PlannedHardwareMaintenance, UnplannedHardwareMaintenance, PlannedHardwareInstallation, UnplannedHardwareInstallation, PlannedOperatingSystemReconfiguration, UnplannedOperatingSystemReconfiguration, PlannedApplicationMaintenance, ApplicationInstallation, ApplicationUnresponsive, ApplicationUnstable, SecurityIssue, LossOfNetworkConnectivity" -ErrorAction Stop
+}
+
+IF ($DurationInMin -lt 5)
+	{
+		Write-Error "Duration needsto be at least 5 minutes" -ErrorAction Stop
+	}
+
+$ServerName = $ServerName + ".gmo.tld"
+
+# --- Connect to the SCOM server --- 
+$Instance = Get-SCOMClassInstance -Name $ServerName
+$Time = ((Get-Date).AddMinutes($DurationInMin)).AddSeconds(5)
+
+Start-SCOMMaintenanceMode -Instance $Instance -Endtime $Time -Comment $Comment -reason $Reason
+
+Write-Host "Server $ServerName has been put into maintenance mode untill $Time"

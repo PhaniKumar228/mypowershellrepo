@@ -1,0 +1,52 @@
+Import-Module SqlPs
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+
+#Create SQL connection string
+$ServerAConnectionString = "Data Source=EMDWProd;Initial Catalog=eMDW;Integrated Security=SSPI;"
+$ServerAConnection = new-object system.data.SqlClient.SqlConnection($ServerAConnectionString);
+
+#Create a dataset
+$dataSet = new-object "System.Data.DataSet" "DBNodes"
+
+#Get the node list
+$query = "SET NOCOUNT ON;"
+$query = $query + "`n" + "SELECT DISTINCT ActiveNode FROM [EMDW].[dbo].DB_ServerActiveCluster WHERE CollectionTime = (SELECT max(CollectionTime) FROM [dbo].DB_ServerActiveCluster)"
+
+$dataAdapter = new-object "System.Data.SqlClient.SqlDataAdapter" ($query, $ServerAConnection)
+$dataAdapter.Fill($dataSet) #| Out-Null
+
+$ServerAConnection.Open()
+
+#Get the cluster file version
+foreach($a in $dataSet.Tables[0].Rows)
+{
+	try
+	{
+		Write-Host "Processing Node: " $a.ActiveNode
+        $FV = Invoke-Command -ComputerName $a.ActiveNode -ScriptBlock {
+		    $VersionInfo = (Get-Item C:\Windows\Cluster\clussvc.exe).VersionInfo
+		    $FileVersion = ("{0}.{1}.{2}.{3}" -f $VersionInfo.FileMajorPart, 
+    			    $VersionInfo.FileMinorPart, 
+    			    $VersionInfo.FileBuildPart, 
+    			    $VersionInfo.FilePrivatePart)
+		    $FileVersion}
+
+        #$query = "INSERT INTO EMDW.dbo.DB_NodeClusterVersion VALUES ('${a}.ActiveNode', '${FileVersion}');"
+        #Invoke-SqlCmd -ServerInstance "EMDWProd" -Database "EMDW" -Query $query
+
+        Write-Host $a.ActiveNode
+        if ($FV -eq "...")
+        {
+            Write-Host "Doh!"
+        }
+        else
+        {
+            $an = $a.ActiveNode
+            $query = "INSERT INTO EMDW.dbo.DB_NodeClusterVersion VALUES ('${an}', '${FV}');"
+            Invoke-SqlCmd -ServerInstance "EMDWProd" -Database "EMDW" -Query $query
+        }
+	}
+	catch
+	{
+	}
+}

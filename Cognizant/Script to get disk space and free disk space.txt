@@ -1,0 +1,21 @@
+# ##############################################################################################################
+# Script to get disk space and free disk space
+# ##############################################################################################################
+
+# Enter the server(s) in which we want to get disk information
+PARAM (
+	[String[]]$servers
+)
+
+$TotalGB = @{Name="Capacity(GB)";expression={[math]::round(($_.Capacity/ 1073741824),2)}}
+$FreeGB = @{Name="FreeSpace(GB)";expression={[math]::round(($_.FreeSpace / 1073741824),2)}}
+$FreePerc = @{Name="Free(%)";expression={[math]::round(((($_.FreeSpace / 1073741824)/($_.Capacity / 1073741824)) * 100),0)}}
+
+function get-mountpoints {
+$volumes = Get-WmiObject -computer $server win32_volume
+$volumes | Select @{n="System"; e={$server}}, Name, DriveLetter, Label, $TotalGB, $FreeGB, $FreePerc | Out-GridView
+}
+
+foreach ($server in $servers){
+get-mountpoints
+}
