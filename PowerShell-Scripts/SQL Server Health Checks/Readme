@@ -1,1 +1,18 @@
 
+A while back I wrote an article about how I created a PowerShell script for a customer to help them with their morning routine of checking the health of each SQL Server in their environment. I have not worked with that customer in a good while, but I thought it would be useful to update the script with some additional checks.
+
+The original script helps the DBA answer these questions:
+
+What is the uptime of each SQL Server?
+What is the status of each database?
+What is the status of each Availability Group?
+What is the backup status of each database?
+What is the available disk space?
+Are there any SQL Agent failed jobs in the last 24 hours?
+What errors appeared in the SQL errorlog in the last 24 hours?
+For the updated script, I have added checks to answer these questions:
+
+What is the status of each SQL Server service?
+What is the status of each Windows Cluster node?
+
+The updated script can be downloaded from GitHub.
