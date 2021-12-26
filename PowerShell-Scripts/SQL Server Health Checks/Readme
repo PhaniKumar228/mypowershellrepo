@@ -1,3 +1,5 @@
+SQL Morning Health Checks
+------------------------------------
 
 A while back I wrote an article about how I created a PowerShell script for a customer to help them with their morning routine of checking the health of each SQL Server in their environment. I have not worked with that customer in a good while, but I thought it would be useful to update the script with some additional checks.
 
@@ -22,3 +24,42 @@ How to use:
 2. Run below command, you can pass multiple servers in string.
    Invoke-MorningHealthChecks.ps1 -serverList 'TestServer01'
 3. Out is attached.
+
+
+-----------------------------------------------------
+
+Supported On-prem Versions: SQL Server 2012 and higher
+This script answers the following questions about your SQL Servers.
+What is the uptime of each SQL Server?
+CRITICAL = < 6 hours
+WARNING = > 6 hours and < 24 hours
+GOOD = > 24 hours
+What is the status of each SQL service (engine, agent, full text, etc)?
+CRITICAL = Not running with automatic startup
+GOOD = Running
+What is the status of each cluster node (AG or FCI)?
+CRITICAL = Down
+GOOD = Up
+What is the status of each database?
+CRITICAL = Suspect
+WARNING = Restoring, recovering, recoery_pending, emergency, offline, copying, or offline_secondary
+GOOD = Normal
+What is the status of each Availability Group?
+CRITICAL = Not_healthy
+WARNING = Partially_healthy
+GOOD = Healthy
+What is the backup status of each database?
+CRITICAL = No FULL/DIFF/LOG, FULL > 7 days and DIFF > 2 days, LOG > 6 hours
+WARNING = FULL > 7 days and DIFF > 1 day, LOG > 3 hours
+GOOD = Normal
+What is the available disk space?
+CRITICAL = < 10%
+WARNING = > 10% and < 20%
+GOOD = > 20%
+Are there any SQL Agent failed jobs in the last 24 hours?
+CRITICAL = Failed
+WARNING = Retry or Canceled
+GOOD = Succeeded
+What errors appeared in the SQL errorlog in the last 24 hours?
+CRITICAL = Errors logged
+GOOD = No errors logged
