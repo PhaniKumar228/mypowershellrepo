@@ -16,3 +16,9 @@ What is the status of each SQL Server service?
 What is the status of each Windows Cluster node?
 
 The updated script can be downloaded from GitHub.
+
+How to use: 
+1. Save the file as Invoke-MorningHealthChecks.ps1 in any folder.
+2. Run below command, you can pass multiple servers in string.
+   Invoke-MorningHealthChecks.ps1 -serverList 'TestServer01'
+3. Out is attached.
